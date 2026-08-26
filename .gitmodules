@@ -1,0 +1,47 @@
+[submodule "apps/declmig-api-server.rs"]
+	path = apps/declmig-api-server.rs
+	url = https://github.com/declarative-migrations/declmig-api-server.rs.git
+
+[submodule "apps/declmig-web-server.rs"]
+	path = apps/declmig-web-server.rs
+	url = https://github.com/declarative-migrations/declmig-web-server.rs.git
+
+[submodule "apps/declmig-infra"]
+	path = apps/declmig-infra
+	url = https://github.com/declarative-migrations/declmig-infra.git
+
+[submodule "apps/declmig-lib-core"]
+	path = apps/declmig-lib-core
+	url = https://github.com/declarative-migrations/declmig-lib-core.git
+
+[submodule "apps/declmig-interfaces"]
+	path = apps/declmig-interfaces
+	url = https://github.com/declarative-migrations/declmig-interfaces.git
+
+[submodule "apps/declmig-clients"]
+	path = apps/declmig-clients
+	url = https://github.com/declarative-migrations/declmig-clients.git
+
+[submodule "apps/declmig-cli"]
+	path = apps/declmig-cli
+	url = https://github.com/declarative-migrations/declmig-cli.git
+
+[submodule "apps/declmig-sync"]
+	path = apps/declmig-sync
+	url = https://github.com/declarative-migrations/declmig-sync.git
+
+[submodule "apps/declmig-e2e"]
+	path = apps/declmig-e2e
+	url = https://github.com/declarative-migrations/declmig-e2e.git
+
+[submodule "apps/declmig-flutter"]
+	path = apps/declmig-flutter
+	url = https://github.com/declarative-migrations/declmig-flutter.git
+
+[submodule "apps/declmig-desktop-app.rs"]
+	path = apps/declmig-desktop-app.rs
+	url = https://github.com/declarative-migrations/declmig-desktop-app.rs.git
+
+[submodule "apps/declmig-sidecar.rs"]
+	path = apps/declmig-sidecar.rs
+	url = https://github.com/declarative-migrations/declmig-sidecar.rs.git
