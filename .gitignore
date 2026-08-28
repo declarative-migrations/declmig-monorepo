@@ -10,3 +10,5 @@
 *.sqlite
 Cargo.lock
 
+# machine-local symlink to ORESoftware/my-ai AGENTS.md; never committed
+.ores/
