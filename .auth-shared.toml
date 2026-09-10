@@ -1,0 +1,30 @@
+# Shared Auth compatibility alias. Never coexist with canonical `.shared-auth.toml`.
+# Candidate peer authority: shared-auth/shared-auth-interfaces#49 @ eb521bb8da4b552c750758d8822afb37dff94949; TJSV @03ccc0ecdfc70f9198c3ccf80718910961d3fde1.
+# Keep rollout gated while upstream hosted exact-head admission remains a zero-step runner failure.
+version = 1
+organization = "declarative-migrations"
+domain = "ores-shared-auth.com"
+realm = "customer-auth"
+auth_origin = "https://auth.ores-shared-auth.com"
+callback_urls = ["https://user.ores-shared-auth.com/auth/callback/", "https://org.ores-shared-auth.com/auth/callback/"]
+surfaces = ["mash", "flutter-web", "rust-desktop"]
+
+[pages]
+login = "/login"
+signup = "/signup"
+recovery = "/password-recovery"
+
+[security]
+pkce_method = "S256"
+browser_session = "http-only-cookie"
+native_session = "os-secure-storage"
+minimum_assurance = "aal1"
+decision_mode = "strict-paired"
+
+[bindings]
+authority_env = "SHARED_AUTH_AUTHORITY"
+callback_env = "SHARED_AUTH_CALLBACK_URL"
+
+[local]
+auth_origin = "http://127.0.0.1:8080"
+callback_urls = ["http://127.0.0.1:8081/auth/callback/"]
