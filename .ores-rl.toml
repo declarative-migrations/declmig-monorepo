@@ -1,0 +1,35 @@
+# Peer authority: ores-rate-limit/ores-rl-interfaces@241353d0f5269450690d9646be03db2aba59a2ae; TJSV @2281843126ab644607b11cf8281d84f382d68dfc.
+# Same-root client/server projection is intentional; secret values remain environment-only and never become CLI flags.
+schemaVersion = "ores.rate-limit.config.v1"
+layout = "combined"
+defaultPolicyId = "repo-default"
+
+[client]
+root = "."
+exposePolicyMetadata = true
+
+[server]
+root = "."
+backend = "local"
+enforcementLayer = "service"
+keyHmacEnv = "ORES_RL_HMAC_KEY"
+
+[[policies]]
+policyId = "repo-default"
+clientVisible = true
+algorithm = "token-bucket"
+identityScope = "authenticated-subject"
+capacity = 120
+windowMs = 0
+refillTokens = 120
+refillIntervalMs = 60000
+requestCost = 1
+enforcementMode = "disabled"
+consistencyMode = "advisory"
+backendFailureMode = "fail-open"
+denyCacheMode = "local-denials"
+denyCacheCapacity = 256
+maxOvershoot = 0
+maxBlockTtlMs = 60000
+keyVersion = "v1"
+policyVersion = 1
