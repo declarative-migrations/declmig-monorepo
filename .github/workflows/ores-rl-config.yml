@@ -1,0 +1,160 @@
+name: ores-rl-config
+
+on:
+  pull_request:
+    paths:
+      - ".ores-rl.toml"
+      - ".github/workflows/ores-rl-config.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".ores-rl.toml"
+      - ".github/workflows/ores-rl-config.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate revision
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Validate TJSV-admitted rate-limit config instance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import tomllib
+
+          PIN = "ores-rate-limit/ores-rl-interfaces@241353d0f5269450690d9646be03db2aba59a2ae"
+          raw = Path(".ores-rl.toml").read_text(encoding="utf-8")
+          if PIN not in raw:
+              raise SystemExit(f"missing immutable contract provenance pin: {PIN}")
+          cfg = tomllib.loads(raw)
+
+          def exact_keys(obj, required, allowed, where):
+              missing = sorted(required - obj.keys())
+              extra = sorted(obj.keys() - allowed)
+              if missing or extra:
+                  raise SystemExit(f"{where}: missing={missing} extra={extra}")
+
+          def text(value, where, lo=1, hi=128, pattern=None):
+              if not isinstance(value, str) or not (lo <= len(value) <= hi):
+                  raise SystemExit(f"{where}: invalid string")
+              if pattern and not re.fullmatch(pattern, value):
+                  raise SystemExit(f"{where}: invalid value {value!r}")
+
+          def integer(value, where, lo, hi):
+              if isinstance(value, bool) or not isinstance(value, int) or not (lo <= value <= hi):
+                  raise SystemExit(f"{where}: integer outside [{lo}, {hi}]")
+
+          top_allowed = {"schemaVersion", "layout", "defaultPolicyId", "client", "server", "policies"}
+          top_required = {"schemaVersion", "layout", "defaultPolicyId", "policies"}
+          exact_keys(cfg, top_required, top_allowed, "root")
+          if cfg["schemaVersion"] != "ores.rate-limit.config.v1":
+              raise SystemExit("root.schemaVersion: unsupported contract version")
+
+          layouts = {"client-only", "server-only", "combined"}
+          if cfg["layout"] not in layouts:
+              raise SystemExit("root.layout: invalid enum")
+          policy_id_re = r"[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?"
+          text(cfg["defaultPolicyId"], "root.defaultPolicyId", 1, 128, policy_id_re)
+
+          if "client" in cfg:
+              client = cfg["client"]
+              if not isinstance(client, dict):
+                  raise SystemExit("client: expected table")
+              exact_keys(client, {"root", "exposePolicyMetadata"}, {"root", "exposePolicyMetadata"}, "client")
+              text(client["root"], "client.root", 1, 255)
+              if not isinstance(client["exposePolicyMetadata"], bool):
+                  raise SystemExit("client.exposePolicyMetadata: expected boolean")
+
+          if "server" in cfg:
+              server = cfg["server"]
+              if not isinstance(server, dict):
+                  raise SystemExit("server: expected table")
+              allowed = {"root", "backend", "enforcementLayer", "redisUrlEnv", "keyHmacEnv"}
+              required = {"root", "backend", "enforcementLayer", "keyHmacEnv"}
+              exact_keys(server, required, allowed, "server")
+              text(server["root"], "server.root", 1, 255)
+              if server["backend"] not in {"local", "redis"}:
+                  raise SystemExit("server.backend: invalid enum")
+              if server["enforcementLayer"] not in {"edge", "load-balancer", "service", "authentication", "data-store"}:
+                  raise SystemExit("server.enforcementLayer: invalid enum")
+              text(server["keyHmacEnv"], "server.keyHmacEnv", 1, 128)
+              if "redisUrlEnv" in server:
+                  text(server["redisUrlEnv"], "server.redisUrlEnv", 1, 128)
+              if server["backend"] == "redis" and "redisUrlEnv" not in server:
+                  raise SystemExit("server.redisUrlEnv: required by redis consumer semantics")
+
+          if cfg["layout"] == "client-only" and ("client" not in cfg or "server" in cfg):
+              raise SystemExit("layout client-only requires client and forbids server")
+          if cfg["layout"] == "server-only" and ("server" not in cfg or "client" in cfg):
+              raise SystemExit("layout server-only requires server and forbids client")
+          if cfg["layout"] == "combined" and not {"client", "server"}.issubset(cfg):
+              raise SystemExit("layout combined requires client and server")
+
+          policies = cfg["policies"]
+          if not isinstance(policies, list) or not policies:
+              raise SystemExit("root.policies: expected non-empty array")
+          policy_required = {
+              "policyId", "clientVisible", "algorithm", "identityScope", "capacity", "windowMs",
+              "refillTokens", "refillIntervalMs", "requestCost", "enforcementMode", "consistencyMode",
+              "backendFailureMode", "denyCacheMode", "denyCacheCapacity", "maxOvershoot", "maxBlockTtlMs",
+              "keyVersion", "policyVersion"
+          }
+          ids = []
+          for i, policy in enumerate(policies):
+              where = f"policies[{i}]"
+              if not isinstance(policy, dict):
+                  raise SystemExit(f"{where}: expected table")
+              exact_keys(policy, policy_required, policy_required, where)
+              text(policy["policyId"], f"{where}.policyId", 1, 128, policy_id_re)
+              ids.append(policy["policyId"])
+              if not isinstance(policy["clientVisible"], bool):
+                  raise SystemExit(f"{where}.clientVisible: expected boolean")
+              enums = {
+                  "algorithm": {"token-bucket", "fixed-window", "sliding-window", "gcra"},
+                  "identityScope": {"anonymous-ip", "authenticated-subject", "authenticated-tenant-subject"},
+                  "enforcementMode": {"enforce", "observe-only", "disabled"},
+                  "consistencyMode": {"strict", "bounded", "advisory"},
+                  "backendFailureMode": {"fail-open", "fail-closed", "local-fallback"},
+                  "denyCacheMode": {"local-denials", "redis-denial-fanout", "redis-strict-blocks"},
+              }
+              for key, allowed in enums.items():
+                  if policy[key] not in allowed:
+                      raise SystemExit(f"{where}.{key}: invalid enum")
+              bounds = {
+                  "capacity": (1, 1_000_000_000), "windowMs": (0, 2_678_400_000),
+                  "refillTokens": (0, 1_000_000_000), "refillIntervalMs": (0, 2_678_400_000),
+                  "requestCost": (1, 1_000_000_000), "denyCacheCapacity": (0, 10_000),
+                  "maxOvershoot": (0, 1_000_000_000), "maxBlockTtlMs": (1, 3_600_000),
+                  "policyVersion": (1, 9_007_199_254_740_991),
+              }
+              for key, (lo, hi) in bounds.items():
+                  integer(policy[key], f"{where}.{key}", lo, hi)
+              text(policy["keyVersion"], f"{where}.keyVersion", 2, 32, r"v[1-9][0-9]*")
+
+          if len(ids) != len(set(ids)):
+              raise SystemExit("root.policies: duplicate policyId")
+          if cfg["defaultPolicyId"] not in set(ids):
+              raise SystemExit("root.defaultPolicyId must name an existing policy")
+
+          print(f"validated .ores-rl.toml against TJSV-admitted authority {PIN}")
+          PY
