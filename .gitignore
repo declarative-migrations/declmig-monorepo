@@ -12,3 +12,7 @@ Cargo.lock
 
 # machine-local symlink to ORESoftware/my-ai AGENTS.md; never committed
 .ores/
+
+# Local temporary directories and Git worktrees (DEN-3956).
+tmp/
+temp/
