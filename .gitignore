@@ -16,3 +16,8 @@ Cargo.lock
 # Local temporary directories and Git worktrees (DEN-3956).
 tmp/
 temp/
+# Repository-local temporary data and authorized Git worktrees
+tmp
+temp
+tmp/worktrees
+temp/worktrees
