@@ -1,0 +1,46 @@
+name: declmig-runner repository seed
+
+on:
+  pull_request:
+    paths:
+      - "repo-seeds/declmig-runner.rs/**"
+      - ".github/workflows/declmig-runner-seed.yml"
+  push:
+    branches: [main]
+    paths:
+      - "repo-seeds/declmig-runner.rs/**"
+      - ".github/workflows/declmig-runner-seed.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact candidate revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.95.0
+      - name: Generate lockfile
+        working-directory: repo-seeds/declmig-runner.rs
+        run: cargo generate-lockfile
+      - name: Format
+        working-directory: repo-seeds/declmig-runner.rs
+        run: cargo fmt --check
+      - name: Test
+        working-directory: repo-seeds/declmig-runner.rs
+        run: cargo test --locked
+      - name: Clippy
+        working-directory: repo-seeds/declmig-runner.rs
+        run: cargo clippy --locked --all-targets -- -D warnings
