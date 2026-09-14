@@ -13,7 +13,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Repository seed transport: bounded stdin only. Production transport will be
     // a private queue/worker adapter; this binary intentionally opens no socket.
     let mut bytes = Vec::new();
-    io::stdin().take(MAX_INPUT_BYTES + 1).read_to_end(&mut bytes)?;
+    io::stdin()
+        .take(MAX_INPUT_BYTES + 1)
+        .read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_INPUT_BYTES {
         return Err("execution envelope exceeds 64 KiB".into());
     }
