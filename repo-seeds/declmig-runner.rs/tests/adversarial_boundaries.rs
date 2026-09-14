@@ -71,18 +71,12 @@ fn inverted_maintenance_window_is_rejected() {
         starts_at_unix_ms: 101,
         ends_at_unix_ms: 100,
     });
-    assert_eq!(
-        admit(input),
-        Err(AdmissionError::InvalidMaintenanceWindow)
-    );
+    assert_eq!(admit(input), Err(AdmissionError::InvalidMaintenanceWindow));
 }
 
 #[test]
 fn request_after_maintenance_window_is_rejected() {
     let mut input = valid();
     input.request.requested_at_unix_ms = 101;
-    assert_eq!(
-        admit(input),
-        Err(AdmissionError::InvalidMaintenanceWindow)
-    );
+    assert_eq!(admit(input), Err(AdmissionError::InvalidMaintenanceWindow));
 }
