@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub mod lifecycle;
+
 pub const MAX_INPUT_BYTES: u64 = 64 * 1024;
 pub const MAX_TIMEOUT_MS: u64 = 60 * 60 * 1000;
 pub const MAX_ATTEMPTS: u8 = 32;
