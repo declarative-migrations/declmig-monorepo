@@ -143,7 +143,10 @@ pub fn apply_event(
         }
         LifecycleEventKind::MarkFailed => {
             require_same_fence(state, event)?;
-            if !matches!(state.status, ExecutionStatus::Running | ExecutionStatus::Cancelling) {
+            if !matches!(
+                state.status,
+                ExecutionStatus::Running | ExecutionStatus::Cancelling
+            ) {
                 return Err(LifecycleError::InvalidTransition);
             }
             state.status = ExecutionStatus::Failed;
