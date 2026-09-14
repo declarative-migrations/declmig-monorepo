@@ -13,7 +13,6 @@ Canonical `monorepo` repository for [`declarative-migrations`](https://github.co
 - Resolve git conflicts semantically; never rebase, stash, or reset.
 
 <!-- BEGIN ores-agents-pointer: managed by ORESoftware/my-ai; edit there, not here -->
-## Repository-local Git worktrees
 
 ## Canonical agent instructions
 
