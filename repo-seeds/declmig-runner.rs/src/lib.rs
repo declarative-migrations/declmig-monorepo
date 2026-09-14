@@ -179,10 +179,23 @@ mod tests {
 
     #[test]
     fn secret_and_remote_exec_fields_fail_closed() {
-        for forbidden in ["password", "database_url", "dsn", "bearer_token", "private_key", "command"] {
+        for forbidden in [
+            "password",
+            "database_url",
+            "dsn",
+            "bearer_token",
+            "private_key",
+            "command",
+        ] {
             let mut value = serde_json::to_value(valid_request()).unwrap();
-            value.as_object_mut().unwrap().insert(forbidden.into(), json!("secret-or-command"));
-            assert!(serde_json::from_value::<FencedExecution>(value).is_err(), "accepted forbidden field {forbidden}");
+            value
+                .as_object_mut()
+                .unwrap()
+                .insert(forbidden.into(), json!("secret-or-command"));
+            assert!(
+                serde_json::from_value::<FencedExecution>(value).is_err(),
+                "accepted forbidden field {forbidden}"
+            );
         }
     }
 
@@ -205,6 +218,9 @@ mod tests {
 
         let mut input = valid_request();
         input.request.tenant_id = "tenant ü".into();
-        assert_eq!(admit(input), Err(AdmissionError::InvalidIdentifier("tenant_id")));
+        assert_eq!(
+            admit(input),
+            Err(AdmissionError::InvalidIdentifier("tenant_id"))
+        );
     }
 }
