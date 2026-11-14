@@ -87,7 +87,9 @@ pub fn apply_event(
     }
 
     if event.event_seq == state.last_event_seq {
-        return if state.last_event_id.as_deref() == Some(event.event_id.as_str()) {
+        return if state.last_event_id.as_deref() == Some(event.event_id.as_str())
+            && event.fencing_token == state.fencing_token
+        {
             Ok(TransitionOutcome::Duplicate)
         } else {
             Err(LifecycleError::SequenceConflict)
@@ -201,6 +203,27 @@ mod tests {
             event_id: id.into(),
             kind,
         }
+    }
+
+    #[test]
+    fn duplicate_event_id_cannot_change_the_fencing_token() {
+        let mut state = state();
+        let original = event(1, 7, "evt_1", LifecycleEventKind::StartAttempt);
+        assert_eq!(
+            apply_event(&mut state, &original, 3),
+            Ok(TransitionOutcome::Applied)
+        );
+        assert_eq!(
+            apply_event(&mut state, &original, 3),
+            Ok(TransitionOutcome::Duplicate)
+        );
+        let forged = event(1, 8, "evt_1", LifecycleEventKind::StartAttempt);
+        assert_eq!(
+            apply_event(&mut state, &forged, 3),
+            Err(LifecycleError::SequenceConflict)
+        );
+        assert_eq!(state.fencing_token, 7);
+        assert_eq!(state.last_event_seq, 1);
     }
 
     #[test]
